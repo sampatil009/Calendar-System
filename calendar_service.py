@@ -25,7 +25,6 @@ class CalendarService:
         ics_event.location = event.location or ''
         ics_event.uid = f"event-{event.id}@calendar-system"
         
-        # Handle all-day events
         if event.all_day:
             ics_event.make_all_day()
         

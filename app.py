@@ -110,7 +110,6 @@ def calendar_view(view):
 @app.route('/api/events')
 @login_required
 def get_events():
-    # Get filter parameters
     category_id = request.args.get('category_id', type=int)
     source = request.args.get('source')
     start_date = request.args.get('start_date')
@@ -118,7 +117,6 @@ def get_events():
     
     query = Event.query.filter_by(user_id=current_user.id)
     
-    # Apply filters
     if category_id:
         query = query.join(Event.categories).filter(Category.id == category_id)
     if source:
@@ -138,13 +136,10 @@ def get_events():
     
     events = query.all()
     
-    # Get category colors for events
     result = []
     for e in events:
-        # Use category color if event has categories, otherwise use event color
         event_color = e.color or '#3788d8'
         if e.categories:
-            # Use first category's color
             event_color = e.categories[0].color or event_color
         
         result.append({
@@ -184,7 +179,6 @@ def create_event():
 
     db.session.add(event)
     
-    # Handle category assignment
     if 'category_ids' in data and data['category_ids']:
         categories = Category.query.filter(
             Category.id.in_(data['category_ids']),
@@ -205,13 +199,10 @@ def get_event(event_id):
     if event.user_id != current_user.id:
         return jsonify({'error': 'Unauthorized'}), 403
     
-    # Get images (max 7 recent)
     images = EventImage.query.filter_by(event_id=event_id).order_by(EventImage.created_at.desc()).limit(7).all()
     
-    # Get attachments
     attachments = Attachment.query.filter_by(event_id=event_id).all()
     
-    # Get categories
     categories = [{'id': c.id, 'name': c.name, 'color': c.color} for c in event.categories]
     
     return jsonify({
@@ -240,7 +231,6 @@ def update_event(event_id):
     
     data = request.json
     
-    # Update event fields
     if 'title' in data:
         event.title = data['title']
     if 'description' in data:
@@ -256,7 +246,6 @@ def update_event(event_id):
     if 'color' in data:
         event.color = data['color']
     
-    # Update categories
     if 'category_ids' in data:
         if data['category_ids']:
             categories = Category.query.filter(
@@ -353,7 +342,6 @@ def upload_event_image(event_id):
     if event.user_id != current_user.id:
         return jsonify({'error': 'Unauthorized'}), 403
     
-    # Check image limit
     image_count = EventImage.query.filter_by(event_id=event_id).count()
     if image_count >= app.config['MAX_IMAGES_PER_EVENT']:
         return jsonify({'error': f'Maximum {app.config["MAX_IMAGES_PER_EVENT"]} images per event'}), 400
@@ -368,14 +356,12 @@ def upload_event_image(event_id):
     if not allowed_file(file.filename):
         return jsonify({'error': 'File type not allowed'}), 400
     
-    # Save image
     filename = secure_filename(file.filename)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
     filename = timestamp + filename
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'images', filename)
     file.save(filepath)
     
-    # Create database record
     event_image = EventImage(
         event_id=event_id,
         image_path=filepath
@@ -420,7 +406,6 @@ def upload_attachment(event_id):
     if not allowed_file(file.filename):
         return jsonify({'error': 'File type not allowed'}), 400
     
-    # Check file size
     file.seek(0, os.SEEK_END)
     file_size = file.tell()
     file.seek(0)
@@ -428,17 +413,15 @@ def upload_attachment(event_id):
     if file_size > app.config['MAX_ATTACHMENT_SIZE']:
         return jsonify({'error': 'File too large'}), 400
     
-    # Save attachment
     filename = secure_filename(file.filename)
     timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
     filename = timestamp + filename
     filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'attachments', filename)
     file.save(filepath)
     
-    # Create database record
     attachment = Attachment(
         event_id=event_id,
-        filename=file.filename,  # Original filename
+        filename=file.filename, 
         file_path=filepath
     )
     db.session.add(attachment)
@@ -473,7 +456,6 @@ def export_event_ics(event_id):
     
     ics_content = calendar_service.generate_ics_file(event)
     
-    # Create temporary file
     import tempfile
     temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.ics', delete=False)
     temp_file.write(ics_content)

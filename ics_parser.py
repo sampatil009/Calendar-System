@@ -29,18 +29,15 @@ class ICSParser:
             calendar = Calendar(raw)
 
             events_created = []
-            max_recurrence_instances = 100  # Limit to prevent too many events
-            max_recurrence_date = datetime.now(pytz.utc) + timedelta(days=730)  # 2 years ahead
+            max_recurrence_instances = 100
+            max_recurrence_date = datetime.now(pytz.utc) + timedelta(days=730) 
 
             for e in calendar.events:
-                # Check if event has recurrence rule
                 try:
                     has_recurrence = hasattr(e, 'rrule') and e.rrule is not None
                     if has_recurrence and hasattr(e, 'occurrences'):
-                        # Expand recurring events
                         occurrences = list(e.occurrences)
                         
-                        # Limit occurrences
                         limited_occurrences = []
                         for occ in occurrences:
                             if len(limited_occurrences) >= max_recurrence_instances:
@@ -49,13 +46,10 @@ class ICSParser:
                                 break
                             limited_occurrences.append(occ)
                         
-                        # Create event for each occurrence
                         for occ_start in limited_occurrences:
-                            # Calculate duration
                             duration = e.duration if hasattr(e, 'duration') and e.duration else timedelta(hours=1)
                             occ_end = occ_start + duration
                             
-                            # Handle timezone
                             if occ_start.tzinfo is None:
                                 occ_start = pytz.utc.localize(occ_start)
                             if occ_end.tzinfo is None:
@@ -75,11 +69,8 @@ class ICSParser:
                             db.session.add(event)
                             events_created.append(event)
                     else:
-                        # Non-recurring event or recurrence not supported
                         raise AttributeError("No recurrence")
                 except (AttributeError, TypeError):
-                    # Non-recurring event or error processing recurrence
-                    # Non-recurring event
                     start = e.begin.datetime
                     end = e.end.datetime if e.end else start + timedelta(hours=1)
 

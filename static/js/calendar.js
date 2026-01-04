@@ -46,10 +46,9 @@ document.addEventListener('DOMContentLoaded', function () {
             fetch(url)
                 .then(response => response.json())
                 .then(data => {
-                    // Convert event IDs to strings for FullCalendar compatibility
                     const formattedData = data.map(event => ({
                         ...event,
-                        id: String(event.id)  // FullCalendar expects string IDs
+                        id: String(event.id) 
                     }));
                     successCallback(formattedData);
                 })
@@ -59,19 +58,15 @@ document.addEventListener('DOMContentLoaded', function () {
                 });
         },
         selectable: true,
-        editable: true,  // Enable drag and drop
+        editable: true, 
         eventResizableFromStart: true,
         eventDrop: function(info) {
-            // Handle event drag
             updateEventTime(info.event);
         },
         eventResize: function(info) {
-            // Handle event resize
             updateEventTime(info.event);
         },
         eventClick: function(info) {
-            // Show event details modal
-            // Convert string ID back to integer for API call
             showEventDetails(parseInt(info.event.id));
         },
         dateClick: function(info) {
@@ -82,7 +77,6 @@ document.addEventListener('DOMContentLoaded', function () {
     calendar.render();
     updateTitle();
 
-    // Navigation buttons
     document.getElementById('prev-btn').onclick = () => {
         calendar.prev();
         updateTitle();
@@ -107,10 +101,8 @@ document.addEventListener('DOMContentLoaded', function () {
         if (title) title.innerText = calendar.view.title;
     }
 
-    // Load categories on page load
     loadCategories();
 
-    // Category management
     document.getElementById('create-category-btn').onclick = function() {
         const name = document.getElementById('new-category-name').value.trim();
         const color = document.getElementById('new-category-color').value;
@@ -166,7 +158,6 @@ document.addEventListener('DOMContentLoaded', function () {
 
     function updateCategoryFilter() {
         const select = document.getElementById('filter-category');
-        // Keep "All Categories" option
         const allOption = select.querySelector('option[value=""]');
         select.innerHTML = '';
         if (allOption) select.appendChild(allOption);
@@ -209,7 +200,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     }
 
-    // Filters
     document.getElementById('filter-category').onchange = function() {
         currentFilters.category_id = this.value || null;
         calendar.refetchEvents();
@@ -228,7 +218,6 @@ document.addEventListener('DOMContentLoaded', function () {
         calendar.refetchEvents();
     };
 
-    // Event form modal
     const eventFormModal = document.getElementById('event-form-modal');
     const eventForm = document.getElementById('event-form');
 
@@ -239,7 +228,6 @@ document.addEventListener('DOMContentLoaded', function () {
         titleEl.textContent = formTitle;
 
         if (eventId) {
-            // Load event data for editing
             fetch(`/api/event/${eventId}`)
                 .then(response => response.json())
                 .then(data => {
@@ -250,13 +238,11 @@ document.addEventListener('DOMContentLoaded', function () {
                     document.getElementById('event-color').value = data.color || '#3788d8';
                     document.getElementById('event-all-day').checked = data.allDay;
 
-                    // Format dates for datetime-local input
                     const startDate = new Date(data.start);
                     const endDate = new Date(data.end);
                     document.getElementById('event-start').value = formatDateForInput(startDate);
                     document.getElementById('event-end').value = formatDateForInput(endDate);
 
-                    // Check categories
                     if (data.categories) {
                         data.categories.forEach(cat => {
                             const checkbox = document.getElementById(`cat-${cat.id}`);
@@ -269,7 +255,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     alert('Failed to load event');
                 });
         } else {
-            // Reset form for new event
             eventForm.reset();
             document.getElementById('event-id').value = '';
             if (dateStr) {
@@ -287,7 +272,6 @@ document.addEventListener('DOMContentLoaded', function () {
         const eventId = document.getElementById('event-id').value;
         const isEdit = !!eventId;
 
-        // Get selected categories
         const selectedCategories = Array.from(
             document.querySelectorAll('#event-categories-checkboxes input[type="checkbox"]:checked')
         ).map(cb => parseInt(cb.value));
@@ -332,7 +316,6 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     });
 
-    // Event details modal
     const eventDetailsModal = document.getElementById('event-details-modal');
 
     function showEventDetails(eventId) {
@@ -347,7 +330,6 @@ document.addEventListener('DOMContentLoaded', function () {
                 document.getElementById('details-description').textContent = data.description || 'N/A';
                 document.getElementById('details-source').textContent = data.source || 'manual';
 
-                // Display categories
                 const categoriesEl = document.getElementById('details-categories');
                 if (data.categories && data.categories.length > 0) {
                     categoriesEl.innerHTML = data.categories.map(cat => 
@@ -360,7 +342,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     categoriesEl.textContent = 'None';
                 }
 
-                // Display images
                 const imagesEl = document.getElementById('details-images');
                 if (data.images && data.images.length > 0) {
                     imagesEl.innerHTML = data.images.map(img => 
@@ -372,7 +353,6 @@ document.addEventListener('DOMContentLoaded', function () {
                     imagesEl.innerHTML = '<p style="color: #999;">No images</p>';
                 }
 
-                // Display attachments
                 const attachmentsEl = document.getElementById('details-attachments');
                 if (data.attachments && data.attachments.length > 0) {
                     attachmentsEl.innerHTML = data.attachments.map(att => 
@@ -448,7 +428,6 @@ document.addEventListener('DOMContentLoaded', function () {
         };
     });
 
-    // Image upload
     document.getElementById('upload-image-btn').onclick = function() {
         document.getElementById('image-upload-input').click();
     };
@@ -462,7 +441,6 @@ document.addEventListener('DOMContentLoaded', function () {
             formData.append('file', file);
         });
 
-        // Upload first file (can be extended for multiple)
         const file = this.files[0];
         const uploadFormData = new FormData();
         uploadFormData.append('file', file);
@@ -473,9 +451,8 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(response => response.json())
         .then(() => {
-            // Reload event details
             showEventDetails(currentEventId);
-            this.value = ''; // Reset input
+            this.value = '';
         })
         .catch(error => {
             console.error('Error uploading image:', error);
@@ -483,7 +460,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     };
 
-    // Attachment upload
     document.getElementById('upload-attachment-btn').onclick = function() {
         document.getElementById('attachment-upload-input').click();
     };
@@ -501,9 +477,8 @@ document.addEventListener('DOMContentLoaded', function () {
         })
         .then(response => response.json())
         .then(() => {
-            // Reload event details
             showEventDetails(currentEventId);
-            this.value = ''; // Reset input
+            this.value = '';
         })
         .catch(error => {
             console.error('Error uploading attachment:', error);
@@ -511,9 +486,7 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     };
 
-    // Update event time (for drag and drop / resize)
     function updateEventTime(event) {
-        // Convert string ID to integer for API call
         const eventId = parseInt(event.id);
         const start = event.start;
         const end = event.end || event.start;
@@ -530,13 +503,11 @@ document.addEventListener('DOMContentLoaded', function () {
         .then(response => response.json())
         .catch(error => {
             console.error('Error updating event time:', error);
-            // Revert the change
             calendar.refetchEvents();
             alert('Failed to update event time');
         });
     }
 
-    // ICS upload (existing functionality)
     document.getElementById('upload-ics-btn').onclick = function() {
         const fileInput = document.getElementById('ics-file-input');
         if (!fileInput.files || fileInput.files.length === 0) {
@@ -559,7 +530,7 @@ document.addEventListener('DOMContentLoaded', function () {
             statusEl.textContent = data.message || 'Upload successful';
             fileInput.value = '';
             calendar.refetchEvents();
-            loadCategories(); // Reload in case new categories were created
+            loadCategories(); 
             setTimeout(() => {
                 statusEl.textContent = '';
             }, 3000);
@@ -573,7 +544,6 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     };
 
-    // Close modals when clicking outside
     window.onclick = function(event) {
         if (event.target.classList.contains('modal')) {
             event.target.style.display = 'none';
