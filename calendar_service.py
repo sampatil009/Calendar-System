@@ -23,17 +23,11 @@ class CalendarService:
         ics_event.end = event.end_time
         ics_event.description = event.description or ''
         ics_event.location = event.location or ''
-        ics_event.uid = event.ics_uid or f"event-{event.id}@calendar-system"
+        ics_event.uid = f"event-{event.id}@calendar-system"
         
-        if event.organizer_email:
-            ics_event.organizer = event.organizer_email
-        
-        if event.is_recurring and event.recurrence_rule:
-            from dateutil import rrule
-            try:
-                ics_event.rrule = rrule.rrulestr(event.recurrence_rule)
-            except:
-                pass
+        # Handle all-day events
+        if event.all_day:
+            ics_event.make_all_day()
         
         calendar.events.add(ics_event)
         

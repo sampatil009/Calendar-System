@@ -1,11 +1,12 @@
-from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
+from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_file
 from flask_login import LoginManager, login_user, logout_user, login_required, current_user
 from werkzeug.security import generate_password_hash, check_password_hash
+from werkzeug.utils import secure_filename
 from datetime import datetime
 import os
 
 from config import config
-from models import db, User, Event, Category
+from models import db, User, Event, Category, Attachment, EventImage
 from ics_parser import ICSParser
 from calendar_service import CalendarService
 
@@ -19,6 +20,11 @@ login_manager.init_app(app)
 login_manager.login_view = 'login'
 
 os.makedirs(app.config['UPLOAD_FOLDER'], exist_ok=True)
+os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'images'), exist_ok=True)
+os.makedirs(os.path.join(app.config['UPLOAD_FOLDER'], 'attachments'), exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -104,16 +110,56 @@ def calendar_view(view):
 @app.route('/api/events')
 @login_required
 def get_events():
-    events = Event.query.filter_by(user_id=current_user.id).all()
-
-    return jsonify([{
-        'id': e.id,
-        'title': e.title,
-        'start': e.start_time.isoformat(),
-        'end': e.end_time.isoformat(),
-        'allDay': e.all_day,
-        'color': e.color or '#3788d8'
-    } for e in events])
+    # Get filter parameters
+    category_id = request.args.get('category_id', type=int)
+    source = request.args.get('source')
+    start_date = request.args.get('start_date')
+    end_date = request.args.get('end_date')
+    
+    query = Event.query.filter_by(user_id=current_user.id)
+    
+    # Apply filters
+    if category_id:
+        query = query.join(Event.categories).filter(Category.id == category_id)
+    if source:
+        query = query.filter(Event.source == source)
+    if start_date:
+        try:
+            start_dt = datetime.fromisoformat(start_date.replace('Z', '+00:00'))
+            query = query.filter(Event.start_time >= start_dt)
+        except:
+            pass
+    if end_date:
+        try:
+            end_dt = datetime.fromisoformat(end_date.replace('Z', '+00:00'))
+            query = query.filter(Event.end_time <= end_dt)
+        except:
+            pass
+    
+    events = query.all()
+    
+    # Get category colors for events
+    result = []
+    for e in events:
+        # Use category color if event has categories, otherwise use event color
+        event_color = e.color or '#3788d8'
+        if e.categories:
+            # Use first category's color
+            event_color = e.categories[0].color or event_color
+        
+        result.append({
+            'id': e.id,
+            'title': e.title,
+            'start': e.start_time.isoformat(),
+            'end': e.end_time.isoformat(),
+            'allDay': e.all_day,
+            'color': event_color,
+            'location': e.location or '',
+            'description': e.description or '',
+            'source': e.source
+        })
+    
+    return jsonify(result)
 
 
 @app.route('/api/event', methods=['POST'])
@@ -127,6 +173,8 @@ def create_event():
     event = Event(
         user_id=current_user.id,
         title=data.get('title', 'Untitled'),
+        description=data.get('description', ''),
+        location=data.get('location', ''),
         start_time=start,
         end_time=end,
         all_day=data.get('allDay', False),
@@ -135,9 +183,93 @@ def create_event():
     )
 
     db.session.add(event)
+    
+    # Handle category assignment
+    if 'category_ids' in data and data['category_ids']:
+        categories = Category.query.filter(
+            Category.id.in_(data['category_ids']),
+            Category.user_id == current_user.id
+        ).all()
+        event.categories = categories
+    
     db.session.commit()
 
-    return jsonify({'message': 'Event created'}), 201
+    return jsonify({'message': 'Event created', 'id': event.id}), 201
+
+
+@app.route('/api/event/<int:event_id>')
+@login_required
+def get_event(event_id):
+    event = Event.query.get_or_404(event_id)
+    
+    if event.user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Get images (max 7 recent)
+    images = EventImage.query.filter_by(event_id=event_id).order_by(EventImage.created_at.desc()).limit(7).all()
+    
+    # Get attachments
+    attachments = Attachment.query.filter_by(event_id=event_id).all()
+    
+    # Get categories
+    categories = [{'id': c.id, 'name': c.name, 'color': c.color} for c in event.categories]
+    
+    return jsonify({
+        'id': event.id,
+        'title': event.title,
+        'description': event.description or '',
+        'location': event.location or '',
+        'start': event.start_time.isoformat(),
+        'end': event.end_time.isoformat(),
+        'allDay': event.all_day,
+        'color': event.color or '#3788d8',
+        'source': event.source,
+        'images': [{'id': img.id, 'path': url_for('serve_image', image_id=img.id)} for img in images],
+        'attachments': [{'id': att.id, 'filename': att.filename, 'path': url_for('download_attachment', attachment_id=att.id)} for att in attachments],
+        'categories': categories
+    })
+
+
+@app.route('/api/event/<int:event_id>', methods=['PUT'])
+@login_required
+def update_event(event_id):
+    event = Event.query.get_or_404(event_id)
+    
+    if event.user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    data = request.json
+    
+    # Update event fields
+    if 'title' in data:
+        event.title = data['title']
+    if 'description' in data:
+        event.description = data.get('description', '')
+    if 'location' in data:
+        event.location = data.get('location', '')
+    if 'start' in data:
+        event.start_time = datetime.fromisoformat(data['start'].replace('Z', '+00:00'))
+    if 'end' in data:
+        event.end_time = datetime.fromisoformat(data['end'].replace('Z', '+00:00'))
+    if 'allDay' in data:
+        event.all_day = data['allDay']
+    if 'color' in data:
+        event.color = data['color']
+    
+    # Update categories
+    if 'category_ids' in data:
+        if data['category_ids']:
+            categories = Category.query.filter(
+                Category.id.in_(data['category_ids']),
+                Category.user_id == current_user.id
+            ).all()
+            event.categories = categories
+        else:
+            event.categories = []
+    
+    db.session.commit()
+    
+    return jsonify({'message': 'Event updated'})
 
 
 @app.route('/api/event/<int:event_id>', methods=['DELETE'])
@@ -163,6 +295,31 @@ def get_categories():
         'color': c.color
     } for c in categories])
 
+
+@app.route('/api/category', methods=['POST'])
+@login_required
+def create_category():
+    data = request.json
+    
+    if not data.get('name'):
+        return jsonify({'error': 'Category name required'}), 400
+    
+    category = Category(
+        user_id=current_user.id,
+        name=data['name'],
+        color=data.get('color', '#3788d8')
+    )
+    
+    db.session.add(category)
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Category created',
+        'id': category.id,
+        'name': category.name,
+        'color': category.color
+    }), 201
+
 @app.route('/api/upload/ics', methods=['POST'])
 @login_required
 def upload_ics():
@@ -186,6 +343,148 @@ def upload_ics():
     except Exception as e:
         print("ICS UPLOAD ERROR:", str(e))
         return jsonify({'error': str(e)}), 500
+
+
+@app.route('/api/event/<int:event_id>/image', methods=['POST'])
+@login_required
+def upload_event_image(event_id):
+    event = Event.query.get_or_404(event_id)
+    
+    if event.user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    # Check image limit
+    image_count = EventImage.query.filter_by(event_id=event_id).count()
+    if image_count >= app.config['MAX_IMAGES_PER_EVENT']:
+        return jsonify({'error': f'Maximum {app.config["MAX_IMAGES_PER_EVENT"]} images per event'}), 400
+    
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'File type not allowed'}), 400
+    
+    # Save image
+    filename = secure_filename(file.filename)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
+    filename = timestamp + filename
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'images', filename)
+    file.save(filepath)
+    
+    # Create database record
+    event_image = EventImage(
+        event_id=event_id,
+        image_path=filepath
+    )
+    db.session.add(event_image)
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Image uploaded',
+        'id': event_image.id,
+        'path': url_for('serve_image', image_id=event_image.id)
+    }), 201
+
+
+@app.route('/api/image/<int:image_id>')
+@login_required
+def serve_image(image_id):
+    image = EventImage.query.get_or_404(image_id)
+    event = Event.query.get_or_404(image.event_id)
+    
+    if event.user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    return send_file(image.image_path)
+
+
+@app.route('/api/event/<int:event_id>/attachment', methods=['POST'])
+@login_required
+def upload_attachment(event_id):
+    event = Event.query.get_or_404(event_id)
+    
+    if event.user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    if 'file' not in request.files:
+        return jsonify({'error': 'No file part'}), 400
+    
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'error': 'No file selected'}), 400
+    
+    if not allowed_file(file.filename):
+        return jsonify({'error': 'File type not allowed'}), 400
+    
+    # Check file size
+    file.seek(0, os.SEEK_END)
+    file_size = file.tell()
+    file.seek(0)
+    
+    if file_size > app.config['MAX_ATTACHMENT_SIZE']:
+        return jsonify({'error': 'File too large'}), 400
+    
+    # Save attachment
+    filename = secure_filename(file.filename)
+    timestamp = datetime.now().strftime('%Y%m%d_%H%M%S_')
+    filename = timestamp + filename
+    filepath = os.path.join(app.config['UPLOAD_FOLDER'], 'attachments', filename)
+    file.save(filepath)
+    
+    # Create database record
+    attachment = Attachment(
+        event_id=event_id,
+        filename=file.filename,  # Original filename
+        file_path=filepath
+    )
+    db.session.add(attachment)
+    db.session.commit()
+    
+    return jsonify({
+        'message': 'Attachment uploaded',
+        'id': attachment.id,
+        'filename': attachment.filename
+    }), 201
+
+
+@app.route('/api/attachment/<int:attachment_id>')
+@login_required
+def download_attachment(attachment_id):
+    attachment = Attachment.query.get_or_404(attachment_id)
+    event = Event.query.get_or_404(attachment.event_id)
+    
+    if event.user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    return send_file(attachment.file_path, as_attachment=True, download_name=attachment.filename)
+
+
+@app.route('/api/event/<int:event_id>/export')
+@login_required
+def export_event_ics(event_id):
+    event = Event.query.get_or_404(event_id)
+    
+    if event.user_id != current_user.id:
+        return jsonify({'error': 'Unauthorized'}), 403
+    
+    ics_content = calendar_service.generate_ics_file(event)
+    
+    # Create temporary file
+    import tempfile
+    temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.ics', delete=False)
+    temp_file.write(ics_content)
+    temp_file.close()
+    
+    return send_file(
+        temp_file.name,
+        as_attachment=True,
+        download_name=f'event_{event.id}.ics',
+        mimetype='text/calendar'
+    )
 
 if __name__ == '__main__':
     with app.app_context():

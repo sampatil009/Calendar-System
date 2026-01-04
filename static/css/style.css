@@ -120,7 +120,18 @@ body {
 }
 
 .upload-section h3 {
-    margin-bottom: 10px;
+    margin-bottom: 12px;
+    font-size: 18px;
+    color: #2c3e50;
+}
+
+.upload-section input[type="file"] {
+    margin-right: 10px;
+    padding: 6px;
+}
+
+.upload-section button {
+    margin-right: 10px;
 }
 
 #upload-status {
@@ -139,40 +150,163 @@ body {
 
 .modal-content {
     background: white;
-    margin: 6% auto;
+    margin: 4% auto;
     padding: 24px;
     border-radius: 10px;
     width: 90%;
     max-width: 450px;
+    max-height: 90vh;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.modal-content h3 {
+    margin: 0 0 24px 0;
+    padding-right: 30px;
+    color: #2c3e50;
+    font-size: 20px;
+    font-weight: 600;
+    flex-shrink: 0;
 }
 
 .close {
-    float: right;
-    font-size: 24px;
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    font-size: 28px;
+    font-weight: bold;
+    color: #999;
     cursor: pointer;
+    line-height: 1;
+    border: none;
+    background: none;
+    padding: 0;
+}
+
+.close:hover {
+    color: #333;
 }
 
 .form-group {
-    margin-bottom: 15px;
+    margin-bottom: 18px;
+    flex-shrink: 0;
 }
 
 .form-group label {
     display: block;
-    margin-bottom: 5px;
+    margin-bottom: 6px;
+    font-weight: 500;
+    color: #2c3e50;
 }
 
 .form-group input,
-.form-group textarea {
+.form-group textarea,
+.form-group select {
     width: 100%;
-    padding: 8px;
+    padding: 10px;
     border-radius: 5px;
     border: 1px solid #ddd;
+    font-size: 14px;
+    font-family: inherit;
+}
+
+.form-group input[type="color"] {
+    width: 100%;
+    height: 45px;
+    padding: 4px;
+    cursor: pointer;
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 80px;
+}
+
+label input[type="checkbox"] {
+    width: auto;
+    margin-right: 8px;
+    cursor: pointer;
+}
+
+label {
+    display: flex;
+    align-items: center;
+    margin-bottom: 15px;
+    cursor: pointer;
+}
+
+.modal-content form {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    overflow-y: auto;
+    overflow-x: hidden;
+    min-height: 0;
+    padding-right: 4px;
+    margin-right: -4px;
+    max-height: calc(90vh - 120px);
+}
+
+/* Custom scrollbar for modal form */
+.modal-content form::-webkit-scrollbar {
+    width: 6px;
+}
+
+.modal-content form::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+.modal-content form::-webkit-scrollbar-thumb {
+    background: #888;
+    border-radius: 3px;
+}
+
+.modal-content form::-webkit-scrollbar-thumb:hover {
+    background: #555;
+}
+
+.modal-content form > *:not(.form-actions) {
+    flex-shrink: 0;
 }
 
 .form-actions {
     display: flex;
     justify-content: flex-end;
     gap: 10px;
+    margin-top: 24px;
+    padding-top: 20px;
+    border-top: 1px solid #eee;
+    flex-shrink: 0;
+    background: white;
+    position: sticky;
+    bottom: 0;
+    z-index: 10;
+}
+
+.form-actions .btn {
+    min-width: 90px;
+    padding: 10px 24px;
+    font-size: 14px;
+    font-weight: 500;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    transition: all 0.2s;
+}
+
+.form-actions .btn:hover {
+    box-shadow: 0 3px 6px rgba(0,0,0,0.15);
+    transform: translateY(-1px);
+}
+
+.form-actions .btn-primary {
+    background-color: #3498db;
+    color: white;
+}
+
+.form-actions .btn-primary:hover {
+    background-color: #2c80b4;
 }
 
 @media (max-width: 768px) {
@@ -197,4 +331,283 @@ body {
 
 .fc-event {
     cursor: pointer;
+}
+
+/* Filters Section */
+.filters-section {
+    background: #f8f9fa;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.filters-section h3 {
+    margin-bottom: 12px;
+    font-size: 18px;
+    color: #2c3e50;
+}
+
+.filters-section h3,
+.category-section h3,
+.upload-section h3 {
+    margin-top: 0;
+}
+
+.filter-group {
+    display: flex;
+    gap: 12px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.filter-group > label {
+    font-weight: 500;
+    margin: 0;
+    white-space: nowrap;
+    color: #2c3e50;
+}
+
+.filter-group select {
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+    min-width: 150px;
+    background: white;
+    cursor: pointer;
+}
+
+/* Category Section */
+.category-section {
+    background: #f8f9fa;
+    padding: 16px;
+    border-radius: 8px;
+    margin-bottom: 20px;
+}
+
+.category-section h3 {
+    margin-bottom: 12px;
+    font-size: 18px;
+    color: #2c3e50;
+}
+
+.category-controls {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    margin-bottom: 12px;
+    flex-wrap: wrap;
+}
+
+.category-controls input[type="text"] {
+    flex: 1;
+    min-width: 150px;
+    padding: 8px 12px;
+    border-radius: 5px;
+    border: 1px solid #ddd;
+    font-size: 14px;
+}
+
+.category-controls input[type="color"] {
+    width: 50px;
+    height: 40px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    cursor: pointer;
+    padding: 2px;
+}
+
+.categories-list {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.category-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: #e9ecef;
+    border-radius: 20px;
+    font-size: 14px;
+}
+
+.category-badge .color-dot {
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.categories-checkboxes {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    max-height: 150px;
+    overflow-y: auto;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    background: #fafafa;
+}
+
+.categories-checkboxes label {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    cursor: pointer;
+    padding: 4px 0;
+    margin: 0;
+    font-weight: normal;
+}
+
+.categories-checkboxes label input[type="checkbox"] {
+    width: auto;
+    margin: 0;
+    cursor: pointer;
+}
+
+.categories-checkboxes .color-dot {
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+}
+
+/* Event Details Modal */
+.modal-large {
+    max-width: 700px;
+}
+
+.event-details {
+    margin: 20px 0;
+}
+
+.detail-row {
+    margin-bottom: 18px;
+    padding-bottom: 18px;
+    border-bottom: 1px solid #eee;
+}
+
+.detail-row:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.detail-row strong {
+    display: block;
+    margin-bottom: 8px;
+    color: #2c3e50;
+    font-size: 14px;
+}
+
+.detail-row span,
+.detail-row div {
+    color: #666;
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+.detail-row button {
+    margin-top: 8px;
+}
+
+.images-container {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin: 10px 0;
+    max-height: 300px;
+    overflow-y: auto;
+}
+
+.image-item {
+    position: relative;
+    width: 120px;
+    height: 120px;
+    border-radius: 8px;
+    overflow: hidden;
+    border: 2px solid #ddd;
+}
+
+.image-item img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.attachments-container {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 10px 0;
+}
+
+.attachment-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 8px;
+    background: #f8f9fa;
+    border-radius: 5px;
+}
+
+.attachment-item a {
+    color: #3498db;
+    text-decoration: none;
+}
+
+.attachment-item a:hover {
+    text-decoration: underline;
+}
+
+.btn-danger {
+    background-color: #e74c3c;
+    color: white;
+}
+
+.btn-danger:hover {
+    background-color: #c0392b;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        margin: 10% auto;
+        padding: 16px;
+    }
+
+    .modal-large {
+        max-width: 95%;
+    }
+
+    .filter-group {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .filter-group select {
+        width: 100%;
+    }
+
+    .category-controls {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .category-controls input[type="text"] {
+        width: 100%;
+    }
+
+    .form-actions {
+        flex-wrap: wrap;
+    }
+
+    .images-container {
+        max-height: 200px;
+    }
 }

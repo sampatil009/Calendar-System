@@ -17,6 +17,28 @@
         <button id="new-event-btn" class="btn btn-primary">New Event</button>
     </div>
 
+    <div class="filters-section">
+        <h3>Filters</h3>
+        <div class="filter-group">
+            <label>Category:</label>
+            <select id="filter-category">
+                <option value="">All Categories</option>
+            </select>
+            
+            <label>Source:</label>
+            <select id="filter-source">
+                <option value="">All Sources</option>
+                <option value="manual">Manual</option>
+                <option value="google">Google</option>
+                <option value="outlook">Outlook</option>
+                <option value="iphone">iPhone</option>
+                <option value="ics">ICS</option>
+            </select>
+            
+            <button id="clear-filters-btn" class="btn btn-secondary">Clear Filters</button>
+        </div>
+    </div>
+
     <div class="upload-section">
         <h3>Import Calendar (ICS File)</h3>
         <input type="file" id="ics-file-input" accept=".ics">
@@ -24,15 +46,28 @@
         <span id="upload-status"></span>
     </div>
 
+    <div class="category-section">
+        <h3>Categories</h3>
+        <div class="category-controls">
+            <input type="text" id="new-category-name" placeholder="Category name">
+            <input type="color" id="new-category-color" value="#3788d8">
+            <button id="create-category-btn" class="btn btn-primary">Create Category</button>
+        </div>
+        <div id="categories-list" class="categories-list"></div>
+    </div>
+
     <div id="calendar"></div>
 
+    <!-- Event Create/Edit Modal -->
     <div id="event-form-modal" class="modal">
         <div class="modal-content">
             <span class="close">&times;</span>
 
-            <h3>Create Event</h3>
+            <h3 id="event-form-title">Create Event</h3>
 
             <form id="event-form">
+                <input type="hidden" id="event-id">
+                
                 <div class="form-group">
                     <label>Title</label>
                     <input type="text" id="event-title" required>
@@ -55,7 +90,12 @@
 
                 <div class="form-group">
                     <label>Description</label>
-                    <textarea id="event-description"></textarea>
+                    <textarea id="event-description" rows="4"></textarea>
+                </div>
+
+                <div class="form-group">
+                    <label>Categories</label>
+                    <div id="event-categories-checkboxes" class="categories-checkboxes"></div>
                 </div>
 
                 <div class="form-group">
@@ -63,15 +103,86 @@
                     <input type="color" id="event-color" value="#3788d8">
                 </div>
 
-                <label>
-                    <input type="checkbox" id="event-all-day"> All Day
-                </label>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="event-all-day"> All Day
+                    </label>
+                </div>
 
                 <div class="form-actions">
                     <button type="submit" class="btn btn-primary">Save</button>
                     <button type="button" id="cancel-form-btn" class="btn btn-secondary">Cancel</button>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Event Details Modal -->
+    <div id="event-details-modal" class="modal">
+        <div class="modal-content modal-large">
+            <span class="close" id="close-details">&times;</span>
+
+            <h3 id="details-title"></h3>
+
+            <div class="event-details">
+                <div class="detail-row">
+                    <strong>Time:</strong>
+                    <span id="details-time"></span>
+                </div>
+
+                <div class="detail-row">
+                    <strong>Location:</strong>
+                    <span id="details-location"></span>
+                </div>
+
+                <div class="detail-row">
+                    <strong>Description:</strong>
+                    <div id="details-description"></div>
+                </div>
+
+                <div class="detail-row">
+                    <strong>Source:</strong>
+                    <span id="details-source"></span>
+                </div>
+
+                <div class="detail-row">
+                    <strong>Categories:</strong>
+                    <div id="details-categories"></div>
+                </div>
+
+                <div class="detail-row">
+                    <strong>Images:</strong>
+                    <div id="details-images" class="images-container"></div>
+                    <input type="file" id="image-upload-input" accept="image/*" multiple style="display:none;">
+                    <button id="upload-image-btn" class="btn btn-secondary">Upload Image</button>
+                </div>
+
+                <div class="detail-row">
+                    <strong>Attachments:</strong>
+                    <div id="details-attachments" class="attachments-container"></div>
+                    <input type="file" id="attachment-upload-input" accept=".pdf,.doc,.docx" style="display:none;">
+                    <button id="upload-attachment-btn" class="btn btn-secondary">Upload Attachment</button>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button id="edit-event-btn" class="btn btn-primary">Edit</button>
+                <button id="export-event-btn" class="btn btn-secondary">Export ICS</button>
+                <button id="delete-event-btn" class="btn btn-danger">Delete</button>
+                <button type="button" id="close-details-btn" class="btn btn-secondary">Close</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div id="delete-confirm-modal" class="modal">
+        <div class="modal-content">
+            <h3>Confirm Delete</h3>
+            <p>Are you sure you want to delete this event? This action cannot be undone.</p>
+            <div class="form-actions">
+                <button id="confirm-delete-btn" class="btn btn-danger">Delete</button>
+                <button id="cancel-delete-btn" class="btn btn-secondary">Cancel</button>
+            </div>
         </div>
     </div>
 
